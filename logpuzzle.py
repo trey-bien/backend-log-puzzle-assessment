@@ -26,8 +26,17 @@ def read_urls(filename):
     extracting the hostname from the filename itself, sorting
     alphabetically in increasing order, and screening out duplicates.
     """
-    # +++your code here+++
-    pass
+    server = filename[re.search(r"_(.*?", filename).span()[1]:]
+    urls = []
+    with open(filename, "r") as f:
+        for line in f:
+            paths_found = re.findall(r'GET \S+ HTTP', line)
+            for path in paths_found:
+                if path[5:-5] not in urls and "puzzle" in path:
+                    urls.append(path[5:-5])
+            urls.sort(key=lambda x: x[-8:-4])
+    result = list(map(lambda each: "http://" + server + "/" + each, urls))
+    return result
 
 
 def download_images(img_urls, dest_dir):
@@ -38,8 +47,20 @@ def download_images(img_urls, dest_dir):
     to show each local image file.
     Creates the directory if necessary.
     """
-    # +++your code here+++
-    pass
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+    with open(os.path.join(dest_dir, "index.html"), "w") as f:
+        f.write("<html><body>\n")
+        count = 0
+        for url in img_urls:
+            local = f'img{count}.jpg'
+            print("Retrieving " + f'{local}' + "...")
+            print(url)
+            urllib.request.urlretrieve(
+                url, os.path.join(dest_dir, f'{local}'))
+            f.write(f'<img src="{local}">')
+            count += 1
+        f.write("\n</body></html>\n")
 
 
 def create_parser():
