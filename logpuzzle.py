@@ -20,23 +20,31 @@ import sys
 import urllib.request
 import argparse
 
+def find_last(url):
+    return re.findall(r"-(....).jpg", url)
+
 
 def read_urls(filename):
     """Returns a list of the puzzle URLs from the given log file,
     extracting the hostname from the filename itself, sorting
     alphabetically in increasing order, and screening out duplicates.
     """
-    server = filename[re.search(r"_(.*?", filename).span()[1]:]
-    urls = []
-    with open(filename, "r") as f:
-        for line in f:
-            paths_found = re.findall(r'GET \S+ HTTP', line)
-            for path in paths_found:
-                if path[5:-5] not in urls and "puzzle" in path:
-                    urls.append(path[5:-5])
-            urls.sort(key=lambda x: x[-8:-4])
-    result = list(map(lambda each: "http://" + server + "/" + each, urls))
-    return result
+    with open(filename) as open_file:
+        file_list = open_file.readlines() 
+        urls = []  
+        for string in file_list:
+            current_string = string 
+            file_pattern = r'/edu.*.jpg'
+            file_match = re.search(file_pattern, current_string)
+            if file_match:
+                if "http://code.google.com"+file_match.group() not in urls:
+                    urls.append("http://code.google.com"+file_match.group())
+            else:
+                pass
+            sorted_urls = sorted(urls, key=find_last)
+        for url in sorted_urls:
+            print(url + '\n')
+        return sorted_urls
 
 
 def download_images(img_urls, dest_dir):
@@ -47,20 +55,18 @@ def download_images(img_urls, dest_dir):
     to show each local image file.
     Creates the directory if necessary.
     """
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
-    with open(os.path.join(dest_dir, "index.html"), "w") as f:
-        f.write("<html><body>\n")
-        count = 0
-        for url in img_urls:
-            local = f'img{count}.jpg'
-            print("Retrieving " + f'{local}' + "...")
-            print(url)
-            urllib.request.urlretrieve(
-                url, os.path.join(dest_dir, f'{local}'))
-            f.write(f'<img src="{local}">')
-            count += 1
-        f.write("\n</body></html>\n")
+    os.mkdir(dest_dir) 
+    html_image_tags_string = ''
+    for i, img_url in enumerate(img_urls):
+        print("Retrieving...: ", img_url)
+        urllib.request.urlretrieve(
+            img_url, filename=dest_dir + '/img'+str(i)+'.jpg')
+        html_image_tags_string = html_image_tags_string + \
+            '<img src="img' + str(i) + '.jpg">'
+    with open(dest_dir + '/index.html', 'w') as f:
+        f.write('<html><body>' + html_image_tags_string +
+                '</body></html>')
+    return
 
 
 def create_parser():
